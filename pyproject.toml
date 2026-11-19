@@ -9,6 +9,9 @@ authors = [{ name = "Soheil Sanati Moutaban" }]
 requires-python = ">=3.10"
 dependencies = []
 
+[project.scripts]
+rlvitals = "rlvitals.cli:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
