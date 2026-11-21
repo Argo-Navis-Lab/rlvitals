@@ -9,8 +9,8 @@ def test_the_version_is_the_installed_one() -> None:
     assert rlvitals.__version__ == version("rlvitals") == "0.1.0"
 
 
-def test_the_package_depends_on_nothing() -> None:
-    assert requires("rlvitals") is None
+def test_the_package_depends_on_nothing_but_its_extras() -> None:
+    assert requires("rlvitals") == ["transformers>=4.56.2; extra == 'transformers'"]
 
 
 def test_importing_it_loads_no_heavy_package() -> None:

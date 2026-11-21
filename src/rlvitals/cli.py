@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from rlvitals.replay import read_log, replay
-from rlvitals.watch import Watch
+from rlvitals.watch import TRL_NAMES, Watch
 
 
 def parse_names(pairs: Sequence[str]) -> dict[str, str]:
@@ -36,9 +36,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="read the trainer's metric TRAINER as rlvitals' RLVITALS (repeatable)",
     )
     replay_command.add_argument("--step-key", default="step", help="a .jsonl log's step key")
+    replay_command.add_argument("--trl", action="store_true", help="read TRL's metric names too")
     args = parser.parse_args(argv)
     try:
-        watch = Watch(parse_names(args.name))
+        watch = Watch((TRL_NAMES if args.trl else {}) | parse_names(args.name))
         records = read_log(args.log, args.step_key)
         events = replay(records, watch)
     except (OSError, ValueError, TypeError) as error:

@@ -12,6 +12,11 @@ dependencies = []
 [project.scripts]
 rlvitals = "rlvitals.cli:main"
 
+[project.optional-dependencies]
+transformers = [
+    "transformers>=4.56.2",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -21,6 +26,7 @@ dev = [
     "pyright[nodejs]>=1.1.414",
     "pytest>=9.2.0",
     "ruff>=0.17.6",
+    "transformers>=4.56.2",
 ]
 
 [tool.pytest]

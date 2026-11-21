@@ -13,6 +13,10 @@ from rlvitals.monitor import Event, Monitor
 
 METRICS = (LOSS, GRAD_NORM, KL, ENTROPY, FLAT_GROUPS)  # every name the detectors read
 
+# TRL's GRPOTrainer (checked in TRL 1.18.2): loss, grad_norm, kl (only when beta isn't 0) and
+# entropy (mean nats a completion token) are logged under rlvitals' own names already.
+TRL_NAMES = {"frac_reward_zero_std": FLAT_GROUPS}
+
 Hook = Callable[[Event], None]
 
 

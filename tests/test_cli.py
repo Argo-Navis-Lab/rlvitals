@@ -34,3 +34,17 @@ def test_a_log_that_cannot_be_read_exits_2(
     assert "No such file" in capsys.readouterr().err
     assert main(["replay", str(tmp_path / "x.jsonl"), "--name", "pg_loss=los"]) == 2
     assert "'pg_loss' maps onto 'los'" in capsys.readouterr().err
+
+
+def test_trl_names_read_trls_flat_groups(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    history = [{"step": step, "frac_reward_zero_std": 0.95} for step in range(30)]
+    path = tmp_path / "trainer_state.json"
+    path.write_text(json.dumps({"log_history": history}))
+    assert main(["replay", str(path)]) == 0
+    assert capsys.readouterr().out == "30 steps, 0 events (0 HALT, 0 SNAPSHOT, 0 WARN)\n"
+    assert main(["replay", str(path), "--trl"]) == 0
+    out, err = capsys.readouterr()
+    assert out == "30 steps, 1 events (0 HALT, 0 SNAPSHOT, 1 WARN)\n"
+    assert err.startswith("rlvitals: step 19: WARN, collapse in flat_groups (mean 0.95, limit 0.9)")
