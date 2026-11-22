@@ -28,3 +28,25 @@ then in the version's output.
 On a Mac or any CPU, a tiny model checks that the script runs (about a minute):
 
     uv run --no-project --python 3.12 --with trl==1.18.2 --with-editable ".[transformers]" python experiments/pilot.py --model trl-internal-testing/tiny-Qwen2ForCausalLM-2.5 --out /tmp/pilot-try --steps 4 --problems 16 --completion-tokens 32
+
+
+## The fault runs (faults.py)
+
+The same run with `--fault NAME`: from step 60 (`--onset`) to the end, one fault is on.
+
+| Fault | What changes from step 60 |
+|---|---|
+| lr | the learning rate is 100 times higher (1e-4) |
+| unclipped | gradient clipping is off and the learning rate is 10 times higher (1e-5) |
+| reward | the reward function returns 0 for every completion |
+| temperature | generation samples at temperature 0.1 (the training pass keeps 1) |
+| fp16 | a middle layer's MLP input grows 1.1 times a step in the training pass, until float16 overflows |
+
+The strengths are guesses until the development runs; they are fixed before any held-out run.
+Development runs use seeds 1 and 2, held-out runs seeds 3 to 5 (healthy ones 3 to 6).
+
+Kaggle's T4 x2 runs two at once, one on each GPU. In place of the pilot's run cell:
+
+    !CUDA_VISIBLE_DEVICES=0 python experiments/pilot.py --fault lr --seed 1 --out /kaggle/working/lr-s1 > /kaggle/working/lr-s1.txt 2>&1 & CUDA_VISIBLE_DEVICES=1 python experiments/pilot.py --fault fp16 --seed 1 --out /kaggle/working/fp16-s1 > /kaggle/working/fp16-s1.txt 2>&1; wait
+
+Each run's printed output goes to its own .txt file beside its folder.

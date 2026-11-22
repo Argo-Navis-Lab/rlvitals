@@ -1,4 +1,5 @@
-"""P7's pilot: one healthy GRPO run of a small instruct model on GSM8K, with rlvitals watching.
+"""P7's pilot: one GRPO run of a small instruct model on GSM8K, with rlvitals watching; with
+--fault, one of P8's faults switches on at step --onset (see faults.py).
 
 Writes three files into --out: metrics.jsonl (every training log: its step, the seconds since
 training began, and what TRL logged), events.jsonl (rlvitals' events) and run.json (the
@@ -16,6 +17,7 @@ from typing import Any
 
 import torch
 from datasets import load_dataset
+from faults import FAULTS, ONSET, Fault
 from transformers import TrainerCallback
 from trl import GRPOConfig, GRPOTrainer
 
@@ -88,6 +90,8 @@ def main() -> None:
     parser.add_argument("--problems", type=int, default=None, help="default: all 7473")
     parser.add_argument("--completion-tokens", type=int, default=256)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--fault", choices=FAULTS, default=None, help="default: a healthy run")
+    parser.add_argument("--onset", type=int, default=ONSET)
     args = parser.parse_args()
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -110,6 +114,7 @@ def main() -> None:
         fp16=gpu,  # a T4 has no bf16: float32 weights, float16 autocast
         bf16=False,
         gradient_checkpointing=gpu,
+        gradient_checkpointing_kwargs={"use_reentrant": False},  # p8s1: recomputes with grad on
     )
     run = {
         "args": {key: str(value) for key, value in vars(args).items()},
@@ -125,16 +130,20 @@ def main() -> None:
         with (args.out / "events.jsonl").open("a") as file:
             file.write(json.dumps(event_body(event)) + "\n")
 
+    fault = Fault(args.fault, args.onset) if args.fault else None
     trainer = GRPOTrainer(
         model=args.model,
-        reward_funcs=correct,
+        reward_funcs=fault.reward(correct) if fault else correct,
         args=config,
         train_dataset=problems(args.problems, args.seed),
         callbacks=[
             LogFile(args.out / "metrics.jsonl"),
             RLVitalsCallback(hooks=(print_event, record)),
+            *([fault] if fault else []),
         ],
     )
+    if fault:
+        fault.trainer = trainer
     trainer.train()
 
 
